@@ -105,45 +105,45 @@ class VideoBackgroundMatting:
     def process_video(self):
         print("Processing video frames...")
         frame_count = 0
-
+    
         while self.cap.isOpened():
             ret, frame = self.cap.read()
             if not ret:
                 break
-
+    
             frame_count += 1
             if frame_count % 100 == 0:
                 print(f"Processing frame {frame_count}...")
-
-            # 转换为 HSV 颜色空间
+    
+            # Convert to HSV color space
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-            # 创建掩码
+    
+            # Create mask
             mask = cv2.inRange(hsv, self.lower_green, self.upper_green)
-
-            # 形态学操作
+    
+            # Morphological operations
             kernel = np.ones((3, 3), np.uint8)
             mask = cv2.erode(mask, kernel, iterations=1)
             mask = cv2.dilate(mask, kernel, iterations=1)
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
-
-            # 平滑掩码边缘
+    
+            # Smooth mask edges
             mask = cv2.GaussianBlur(mask, (5, 5), 0)
             mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)[1]
-
-            # 反转掩码
+    
+            # Invert mask
             mask_inv = cv2.bitwise_not(mask)
-
-            # 提取前景和背景
+    
+            # Extract foreground and background
             foreground = cv2.bitwise_and(frame, frame, mask=mask_inv)
             background = cv2.bitwise_and(self.background, self.background, mask=mask)
-
-            # 合并前景和背景
+    
+            # Combine foreground and background
             result = cv2.add(foreground, background)
-
-            # 写入结果
+    
+            # Write result
             self.out.write(result)
-
+    
         print(f"Processing complete. Total frames processed: {frame_count}")
 
     def release_resources(self):
