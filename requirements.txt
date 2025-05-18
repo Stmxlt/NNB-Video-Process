@@ -1,0 +1,6 @@
+numpy==1.26
+opencv-python==4.9
+moviepy==1.6
+python-docx==0.8.11
+Pillow==10.1
+spacy==3.6.2
