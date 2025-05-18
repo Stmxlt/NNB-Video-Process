@@ -17,7 +17,7 @@ If you need to run this function, you have to build enviornment follows:
 pip install -r requirements.txt
 ```
 
-Certainly, you need to install language models for caption generation, such as Chinese language model：
+Certainly, you need to install language models for caption generation, such as Chinese language model:
 ```bash
 python -m spacy download zh_core_web_sm
 ```
