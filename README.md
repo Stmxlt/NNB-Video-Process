@@ -1,4 +1,4 @@
-# NNB-Video-Processor
+# NNB-Video-Processing-function
 
 A video processing function for the New News Broadcasting system
 
