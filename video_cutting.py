@@ -1,97 +1,96 @@
 """
-@filename: video_cutting.py
+@filename: video_editing.py
 @author: Stmxlt
 @time: 2025-04-07
 """
 
+
 import os
 import re
 import tempfile
-import random
-import numpy as np
 import spacy
-from docx import Document
-from PIL import Image, ImageFilter, ImageDraw, ImageFont
-from moviepy import *
+from PIL import Image, ImageDraw, ImageFont
+from moviepy import VideoFileClip, ImageClip, CompositeVideoClip
+from tqdm import tqdm
+
 
 class VideoNewsEditor:
-    def __init__(self, docx_path, video_path, output_path,
-                 font_path='simhei.ttf', image_duration=3, font_size=20):
-        """Initialize the video editor"""
+    def __init__(self, txt_path, video_path, output_path, icon_path="input_files/icon.png", 
+                 font_path='simhei.ttf', font_size=40, title_font_size=64):
+        """
+        Initialize the VideoNewsEditor class for adding news text overlays to videos.
+        
+        Inputs:
+            txt_path: Path to the text file containing news content (title + body).
+            video_path: Path to the base video file (with background replaced).
+            output_path: Path to save the final edited video.
+            icon_path: Path to the icon image for the video overlay (default: "input_files/icon.png").
+            font_path: Path to the font file for text rendering (default: 'simhei.ttf').
+            font_size: Font size for body text (default: 40).
+            title_font_size: Font size for news title (default: 64).
+        """
         print("Initializing video editor...")
 
-        self.docx_path = docx_path
+        self.txt_path = txt_path
         self.video_path = video_path
         self.output_path = output_path
+        self.icon_path = icon_path
         self.font_path = font_path
-        self.image_duration = image_duration
         self.font_size = font_size
+        self.title_font_size = title_font_size
 
-        # Initialize temporary file system
         self.temp_dir = tempfile.TemporaryDirectory()
         self.news_items = []
         self.video_clip = None
         self.video_size = (0, 0)
-        self.doc = None
+        self.text_content = ""
+        self.title = ""
+        self.body_sentences = []
 
-        # Processing steps
-        self._parse_document()
+        self._parse_text_file()
         self._load_video()
 
-    def _parse_document(self):
-        """Parse the Word document (maintain original paragraph order)"""
-        print("Parsing Word document...")
-        self.doc = Document(self.docx_path)
+    def _parse_text_file(self):
+        """
+        Parse the text file to extract news title (first line) and body content (remaining lines).
+        Split body content into sentences for overlay.
+        """
+        print(f"Parsing text file: {self.txt_path}")
+        if not os.path.exists(self.txt_path):
+            raise FileNotFoundError(f"Text file not found: {self.txt_path}")
 
-        for idx, para in enumerate(self.doc.paragraphs):
-            # Process image paragraphs
-            images = self._extract_images(para)
-            if images:
-                self.news_items.append({'type': 'image', 'content': images})
-                continue
+        with open(self.txt_path, 'r', encoding='utf-8') as f:
+            all_lines = [line.strip() for line in f.readlines() if line.strip()]
 
-            # Process text paragraphs
-            text = para.text.strip()
-            if text:
-                sentences = self._split_sentences(text)
-                self.news_items.append({'type': 'text', 'content': sentences})
+        if not all_lines:
+            raise ValueError("Text file is empty")
 
-        print(f"Parsing complete, extracted {len(self.news_items)} news items")
+        self.title = all_lines[0]
 
-    def _extract_images(self, paragraph):
-        """Extract images from the paragraph"""
-        images = []
-        for run in paragraph.runs:
-            for graphic in run.element.xpath('.//a:graphic'):
-                blip = graphic.xpath('.//a:blip/@r:embed')
-                if blip:
-                    image_part = self.doc.part.related_parts[blip[0]]
-                    img_path = os.path.join(self.temp_dir.name,
-                                            f"img_{len(self.news_items)}.png")
-                    with open(img_path, 'wb') as f:
-                        f.write(image_part._blob)
-                    images.append(img_path)
-        if images:
-            print(f"Image paths: {images}")
-        return images
+        if len(all_lines) < 2:
+            print("Warning: Text file contains only title, no body content")
+            self.body_sentences = []
+            return
+
+        body_content = ' '.join(all_lines[1:])
+        self.body_sentences = self._split_sentences(body_content)
+        self.news_items.append({'type': 'text', 'content': self.body_sentences})
+        print(f"Extracted {len(self.body_sentences)} body sentences from all paragraphs")
 
     def _split_sentences(self, text):
         """
-        Split the input text into sentences and process each sentence to meet specific length requirements.
-
-        Args:
-            text (str): The input string to be processed.
-
+        Split continuous text into individual sentences using punctuation and spaCy (if available).
+        Ensure each sentence length is within a reasonable range.
+        
+        Inputs:
+            text: Continuous string of text to be split.
+        
         Returns:
-            list: A list of processed sentences.
+            list: List of split sentences.
         """
-        # Regular expression pattern to match Chinese punctuation marks
-        pattern = r'([，、。！？…])'
-
-        # Split the text into sentences based on punctuation marks
+        pattern = r'([，、。！？…])'  # Chinese punctuation for splitting
         sentences = re.split(pattern, text)
 
-        # Merge sentences with their corresponding punctuation marks (since split separates punctuation into individual elements)
         merged_sentences = []
         i = 0
         while i < len(sentences):
@@ -102,248 +101,272 @@ class VideoNewsEditor:
                 merged_sentences.append(sentences[i])
                 i += 1
 
-        # Remove the trailing punctuation mark from each sentence
         cleaned_sentences = []
         for sentence in merged_sentences:
-            # If the sentence ends with a punctuation mark, remove the last character
             if sentence and sentence[-1] in ['，', '、', '。', '！', '？', '…']:
                 cleaned_sentences.append(sentence[:-1])
             else:
                 cleaned_sentences.append(sentence)
 
-        # Load the Chinese spaCy model
         try:
             nlp = spacy.load("zh_core_web_sm")
         except:
-            print("Please install the Chinese spaCy model using: python -m spacy download zh_core_web_sm")
+            print("Please install the Chinese spaCy model: python -m spacy download zh_core_web_sm")
             nlp = None
 
-        # Process sentences using spaCy for further splitting
         final_sentences = []
         for sentence in cleaned_sentences:
             if nlp is not None:
-                # Use spaCy to split the sentence into clauses
                 doc = nlp(sentence)
                 clauses = [str(sent) for sent in doc.sents]
                 if len(clauses) > 1:
-                    # If spaCy split the sentence into multiple clauses, use them
                     final_sentences.extend(clauses)
                     continue
             final_sentences.append(sentence)
 
-        # Further process sentences to ensure none exceed 25 characters
         processed_sentences = []
         for sentence in final_sentences:
             current_sentence = sentence
-            while len(current_sentence) > 25:
+            while len(current_sentence) > 25:  # Split long sentences
                 if nlp is not None:
-                    # Try to split the sentence using spaCy again
                     doc = nlp(current_sentence)
                     clauses = [str(sent) for sent in doc.sents]
                     if len(clauses) > 1:
-                        # If spaCy can split the sentence, use the split clauses
                         processed_sentences.extend(clauses)
                         current_sentence = None
                         break
                     else:
-                        # If spaCy cannot split further, revert to the original method
                         split_point = 25
                         processed_sentences.append(current_sentence[:split_point])
                         current_sentence = current_sentence[split_point:]
                 else:
-                    # If spaCy is not available, revert to the original method
                     split_point = 25
                     processed_sentences.append(current_sentence[:split_point])
                     current_sentence = current_sentence[split_point:]
             if current_sentence is not None and current_sentence:
                 processed_sentences.append(current_sentence)
 
-        # Remove empty strings from the list
-        processed_sentences = [sentence for sentence in processed_sentences if sentence]
-
-        return processed_sentences
+        return [s for s in processed_sentences if s]
 
     def _load_video(self):
-        """Load and preprocess the video"""
+        """Load the base video and extract its size and duration."""
         print("Loading video...")
         self.video_clip = VideoFileClip(self.video_path)
         self.video_size = self.video_clip.size
         self.total_duration = self.video_clip.duration
 
-    def _create_text_clip(self, text, start_time, duration):
-        """Generate a text subtitle clip (rendered using PIL)"""
-        print(f"Creating text subtitle: '{text}'")
+    def _create_icon_white_block(self):
+        """
+        Create a white block with a resized icon (for video overlay).
+        
+        Returns:
+            ImageClip: Icon white block clip with full video duration, positioned at the bottom-left.
+        """
+        bar_height = self.font_size + 40
+        
+        icon_img = Image.open(self.icon_path).convert("RGBA")
+        
+        icon_width, icon_height = icon_img.size
+        scale = bar_height / icon_height
+        new_icon_width = int(icon_width * scale)
+        new_icon_height = bar_height
+        icon_resized = icon_img.resize((new_icon_width, new_icon_height), Image.LANCZOS)
+        
+        white_block_width = new_icon_width
+        white_block_height = bar_height
+        
+        white_block = Image.new('RGBA', (white_block_width, white_block_height), (255, 255, 255, 255))
+        
+        icon_x = (white_block_width - new_icon_width) // 2
+        icon_y = 0
+        white_block.paste(icon_resized, (icon_x, icon_y), icon_resized)
+        
+        white_block_path = os.path.join(self.temp_dir.name, "white_block_with_icon.png")
+        white_block.save(white_block_path)
+        
+        return ImageClip(white_block_path).with_duration(self.total_duration) \
+            .with_position(('left', self.video_size[1] - white_block_height))
 
-        # Create text image
+    def _create_blue_bar(self, white_block_width):
+        """
+        Create a blue bar with news title (for video overlay), positioned next to the icon block.
+        
+        Inputs:
+            white_block_width: Width of the icon white block (to align the blue bar).
+        
+        Returns:
+            ImageClip: Blue bar clip with full video duration, positioned at the bottom.
+        """
+        bar_height = self.font_size + 40
+        bar_width = self.video_size[0] - white_block_width
+        
+        img = Image.new('RGBA', (bar_width, bar_height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        
+        try:
+            title_font = ImageFont.truetype(self.font_path, self.title_font_size)
+        except IOError:
+            title_font = ImageFont.load_default()
+
+        title_text = self.title if self.title else ""
+        title_width = draw.textlength(title_text, font=title_font) if title_text else 0
+        title_padding = 20
+        title_total_width = int(title_padding + title_width)
+        title_bg_end = min(title_total_width + 10, bar_width)
+
+        for x in range(title_bg_end):
+            draw.line(
+                [(x, 0), (x, bar_height - 1)],
+                fill=(0, 51, 153, 255)
+            )
+
+        gradient_start = title_bg_end
+        gradient_length = bar_width - gradient_start
+        
+        if gradient_length > 0:
+            for x in range(gradient_start, bar_width):
+                alpha = int(255 * (1 - (x - gradient_start) / gradient_length))
+                draw.line(
+                    [(x, 0), (x, bar_height - 1)],
+                    fill=(0, 51, 153, alpha)
+                )
+
+        if title_text:
+            text_y = int((bar_height - self.title_font_size) // 2)
+            
+            # Add black shadow
+            for x_offset in [-1, 1]:
+                for y_offset in [-1, 1]:
+                    draw.text(
+                        (title_padding + x_offset, text_y + y_offset),
+                        title_text,
+                        font=title_font,
+                        fill=(0, 0, 0, 255)
+                    )
+            # Add white text
+            draw.text(
+                (title_padding, text_y),
+                title_text,
+                font=title_font,
+                fill=(255, 255, 255, 255)
+            )
+        
+        bar_path = os.path.join(self.temp_dir.name, "blue_bar.png")
+        img.save(bar_path)
+        
+        return ImageClip(bar_path).with_duration(self.total_duration) \
+            .with_position((white_block_width, self.video_size[1] - bar_height))
+
+    def _create_text_clip(self, text, start_time, duration):
+        """
+        Create a text clip for a single sentence, with shadow effect.
+        
+        Inputs:
+            text: Sentence text to display.
+            start_time: Time (in seconds) when the text starts to appear.
+            duration: Duration (in seconds) for which the text is displayed.
+        
+        Returns:
+            ImageClip: Text clip with specified start time and duration, centered horizontally.
+        """
         img = Image.new('RGBA', (self.video_size[0], self.font_size + 20), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
+        
         try:
             font = ImageFont.truetype(self.font_path, self.font_size)
         except IOError:
             font = ImageFont.load_default()
 
-        # Calculate text position
         text_width = draw.textlength(text, font=font)
-        position = ((self.video_size[0] - text_width) // 2, 10)
+        text_x = (self.video_size[0] - text_width) // 2
+        text_y = 10
+        position = (text_x, text_y)
 
-        # Draw black outline
-        outline_color = (0, 0, 0, 255)  # Black
+        # Add black shadow
         for x_offset in [-1, 1]:
             for y_offset in [-1, 1]:
-                draw.text((position[0] + x_offset, position[1] + y_offset), text, font=font, fill=outline_color)
-
-        # Draw white text
+                draw.text(
+                    (position[0] + x_offset, position[1] + y_offset),
+                    text,
+                    font=font,
+                    fill=(0, 0, 0, 255)
+                )
+        # Add white text
         draw.text(position, text, font=font, fill=(255, 255, 255, 255))
 
-        # Save temporary file
         text_path = os.path.join(self.temp_dir.name, f"text_{start_time}.png")
         img.save(text_path)
-        print(f"Text subtitle saved to: {text_path}")
 
+        bar_height = self.title_font_size + self.font_size
         return ImageClip(text_path).with_duration(duration).with_start(start_time) \
-            .with_position(('center', self.video_size[1] - 150))
+            .with_position(('center', self.video_size[1] - bar_height - self.font_size - 10))
 
     def _process_timeline(self):
-        """Build the timeline sequence"""
+        """
+        Build the video timeline by combining the base video, icon block, blue bar, and text clips.
+        
+        Returns:
+            CompositeVideoClip: Final video clip with all overlays.
+        """
         print("Building timeline...")
-        clips = []
+        clips = [self.video_clip]
+        
+        white_block_clip = self._create_icon_white_block()
+        clips.append(white_block_clip)
+        white_block_width = white_block_clip.size[0]
+        
+        blue_bar = self._create_blue_bar(white_block_width)
+        clips.append(blue_bar)
+        
         current_time = 0
-        last_text_start = 0
-        last_text_duration = 0
-        image_clip_ranges = []  # Record the time ranges of image clips
-        last_item_type = None  # Track the type of the last processed news item
-        image_pool = []  # Collect all image paths from consecutive image news items
+        all_sentences = self.body_sentences
+        
+        total_chars = sum(len(sentence) for sentence in all_sentences)
+        total_sentences = len(all_sentences)
+        
+        if total_chars == 0 or total_sentences == 0:
+            print("No body content to process")
+            return CompositeVideoClip(clips)
+        
+        char_duration = self.total_duration / total_chars
+        print(f"Total duration: {self.total_duration:.2f}s, Total chars: {total_chars}")
+        print(f"Base duration per character: {char_duration:.2f}s")
 
-        # Calculate character density
-        total_chars = sum(len(s) for item in self.news_items
-                          if item['type'] == 'text' for s in item['content'])
-        char_per_sec = total_chars / self.total_duration if total_chars else 0
-        print(f"Character density: {char_per_sec} characters/second")
+        for sentence in tqdm(all_sentences, desc="Processing sentences", unit="sentence"):
+            sentence_len = len(sentence)
+            duration = sentence_len * char_duration
+            
+            duration = max(0.5, duration)
+            duration = min(duration, self.total_duration - current_time)
+            
+            if duration <= 0:
+                break
+            
+            text_clip = self._create_text_clip(sentence, current_time, duration)
+            clips.append(text_clip)
+            
+            current_time += duration
 
-        # Process each news item
-        for idx, item in enumerate(self.news_items):
-            print(f"Processing news item {idx + 1}/{len(self.news_items)}")
-            if item['type'] == 'text':
-                # If there are collected images, process them before processing text
-                if image_pool and last_item_type == 'image':
-                    # Randomly select an image from the collected images
-                    selected_img_path = random.choice(image_pool)
-                    print(f"Randomly selected image: {selected_img_path}")
-
-                    # Create image clip
-                    img_clip = ImageClip(selected_img_path) \
-                        .resized(width=self.video_size[0]) \
-                        .with_duration(last_text_duration) \
-                        .with_start(last_text_start) \
-                        .with_position('center')
-
-                    # Add fade-in and fade-out effects
-                    fade_duration = last_text_duration * 0.15
-                    img_clip = img_clip.with_effects([vfx.FadeIn(fade_duration), vfx.FadeOut(fade_duration)])
-                    clips.append(img_clip)
-
-                    # Record the time range of the image clip
-                    image_clip_ranges.append((last_text_start, last_text_start + last_text_duration))
-
-                    current_time = last_text_start + last_text_duration
-                    image_pool = []  # Reset image pool after processing
-
-                # Process text sentences
-                for sentence in item['content']:
-                    duration = max(len(sentence) / char_per_sec, 1) if char_per_sec else 0
-                    print(f"Processing text sentence: '{sentence}', duration: {duration} seconds")
-                    text_clip = self._create_text_clip(sentence, current_time, duration)
-                    clips.append(text_clip)
-                    last_text_start = current_time
-                    last_text_duration = duration
-                    current_time += duration
-                last_item_type = 'text'  # Update the last news item type to text
-            elif item['type'] == 'image':
-                # Collect image paths
-                if item['content']:
-                    image_pool.extend(item['content'])
-                last_item_type = 'image'  # Update the last news item type to image
-
-        # Process any remaining images in the pool after the loop
-        if image_pool and last_item_type == 'image':
-            # Randomly select an image from the collected images
-            selected_img_path = random.choice(image_pool)
-            print(f"Randomly selected image: {selected_img_path}")
-
-            # Create image clip
-            img_clip = ImageClip(selected_img_path) \
-                .resized(width=self.video_size[0]) \
-                .with_duration(last_text_duration) \
-                .with_start(last_text_start) \
-                .with_position('center')
-
-            # Add fade-in and fade-out effects
-            fade_duration = last_text_duration * 0.15
-            img_clip = img_clip.with_effects([vfx.FadeIn(fade_duration), vfx.FadeOut(fade_duration)])
-            clips.append(img_clip)
-
-            # Record the time range of the image clip
-            image_clip_ranges.append((last_text_start, last_text_start + last_text_duration))
-
-        print("Timeline building complete")
-        return clips, image_clip_ranges  # Return the time ranges of image clips
+        return CompositeVideoClip(clips)
 
     def render_video(self):
-        """Render the final video"""
-        print("Starting video rendering...")
-        clips, image_clip_ranges = self._process_timeline()  # Get the time ranges of image clips
-        print("Starting video composition...")
-
-        # Create a dynamic background selection VideoClip
-        def dynamic_bg(t):
-            # Check if the current time is within the time range of an image clip
-            for start, end in image_clip_ranges:
-                if start <= t <= end:
-                    # Apply Gaussian blur
-                    frame = self.video_clip.get_frame(t)
-                    img = Image.fromarray(frame)
-                    img = img.filter(ImageFilter.GaussianBlur(radius=5))
-                    return np.array(img)
-            # Return the original video background if not in an image clip time range
-            return self.video_clip.get_frame(t)
-
-        # Create a dynamic background with the same size as the original video
-        bg_frames = []
-        for t in np.linspace(0, self.total_duration, int(self.total_duration * 24)):  # Assume 24fps
-            bg_frames.append(dynamic_bg(t))
-
-        # Combine the dynamic background frames into a new video clip
-        bg_clip = ImageSequenceClip(bg_frames, fps=24)
-
-        # Composite the video
-        final = CompositeVideoClip([bg_clip] + clips, size=self.video_size)
-
-        # Explicitly add audio
-        final = final.with_audio(self.video_clip.audio)
-        final.with_duration(self.total_duration).write_videofile(
-            self.output_path,
-            fps=24,
-            codec='libx264',
-            audio_codec='aac',
-            threads=4,
-            logger=None  # Disable redundant logs
-        )
-        print(f"Video composition complete, saved to: {self.output_path}")
-        # Delete the intermediate output files
+        """
+        Render the final edited video with all overlays (icon, title bar, body text) and save it.
+        Clean up temporary files after rendering.
+        """
         try:
-            # Check if the file exist and delete
-            if os.path.exists(self.video_path):
-                os.remove(self.video_path)
-                print(f"Deleted file: {self.video_path}")
-            else:
-                print(f"File not found: {self.video_path}")
+            print("Rendering final video...")
+            final_clip = self._process_timeline()
+            final_clip.write_videofile(
+                self.output_path,
+                fps=self.video_clip.fps,
+                codec="libx264",
+                audio_codec="aac"
+            )
+            print(f"Video saved to: {self.output_path}")
         except Exception as e:
-            print(f"Error deleting files: {e}")
-
-    def __del__(self):
-        """Automatically clean up resources"""
-        print("Cleaning up temporary resources...")
-        self.temp_dir.cleanup()
-        if self.video_clip:
-            self.video_clip.close()
-        print("Resource cleanup complete")
+            print(f"Error rendering video: {e}")
+        finally:
+            self.temp_dir.cleanup()
+            if self.video_clip:
+                self.video_clip.close()
