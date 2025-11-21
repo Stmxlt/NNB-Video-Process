@@ -26,24 +26,6 @@ This toolkit automates two key video processing tasks:
 * **Background Replacement**: Uses the RVM model to separate foreground (e.g., a presenter) from the original video background and replace it with a target image.
 * **Video Editing**: Adds news-style overlays (title bar, body text, and icons) to the background-replaced video, generating a polished news clip.
 
-#### Directory Structure
-
-```plaintext
-project_root/
-├── input_files/               # Input resources
-│   ├── input_video.mp4        # Source video (with foreground to preserve)
-│   ├── background.png         # Target background image
-│   ├── news.txt               # News content (title + body text)
-│   └── icon.png               # Icon for news overlay (bottom-left)
-├── output_files/              # Generated files
-│   ├── final_output_video.mp4 # Video with replaced background (pre-editing)
-│   └── edited_video.mp4       # Final news video with overlays
-├── utils/                     # RVM functions resources
-├── video_background_matting.py # Background replacement logic
-├── video_editing.py           # News overlay logic
-└── __init__.py                # Main execution script
-```
-
 #### You Need to Upload:
 * an original broadcast video with a green screen (input_video.mp4)
 * a background image to be used as the new backdrop (background.png)
