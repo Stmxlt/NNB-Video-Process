@@ -24,20 +24,20 @@ This toolkit automates two key video processing tasks:
 * Python 3.10.8
 * FFmpeg (required for video/audio processing; install guide)
 * Required Python packages:
-'''bash
+```bash
 pip install opencv-python numpy torch moviepy tqdm pillow spacy
-'''
+```
 
 Additional dependencies:
 RVM model checkpoint: Download from [Robust Video Matting (RVM)](https://github.com/PeterL1n/RobustVideoMatting) and place in the project root (e.g., rvm_mobilenetv3.pth).
 SpaCy Chinese model (for text segmentation):
-'''bash
+```bash
 pip install opencv-python numpy torch moviepy tqdm pillow spacy
-'''
+```
 
 **Directory Structure**
 
-'''plaintext
+```plaintext
 project_root/
 ├── input_files/               # Input resources
 │   ├── input_video.mp4        # Source video (with foreground to preserve)
@@ -51,13 +51,13 @@ project_root/
 ├── video_background_matting.py # Background replacement logic
 ├── video_editing.py           # News overlay logic
 └── __init__.py                # Main execution script
-'''
+```
 
 **Usage**
 
 1. Configure Inputs
 Modify the CONFIG dictionary in __init__.py to specify paths and parameters:
-'''python
+```python
 CONFIG = {
     "input_path": "input_files/input_video.mp4",       # Path to source video
     "background_path": "input_files/background.png",   # Path to target background
@@ -66,7 +66,7 @@ CONFIG = {
     "rvm_checkpoint": "rvm_mobilenetv3.pth",           # Path to RVM checkpoint file
     "rvm_device": "cuda"                               # Device ("cuda" for GPU, "cpu" for CPU)
 }
-'''
+```
 
 2. Prepare News Content
 Create input_files/news.txt with:
@@ -75,9 +75,9 @@ Create input_files/news.txt with:
 
 3. Run the Toolkit
 Execute the main script to run both background replacement and news editing:
-'''bash
+```bash
 python __init__.py
-'''
+```
 
 **Core Components**
 
