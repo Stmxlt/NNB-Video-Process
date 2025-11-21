@@ -44,7 +44,7 @@ This toolkit automates two key video processing tasks:
 * Required Python packages:
 
 ```bash
-pip install opencv-python numpy torch moviepy tqdm pillow spacy
+pip install -r requirements.txt
 ```
 
 * Additional dependencies:
@@ -77,6 +77,7 @@ Create input_files/news.txt with:
 
 3. Run the Toolkit
 Execute the main script to run both background replacement and news editing:
+
 ```bash
 python __init__.py
 ```
