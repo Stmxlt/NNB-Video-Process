@@ -1,4 +1,4 @@
-# NNB-Video-Processing-function
+# NNB-Video-Processing-Function
 
 NNB-Video-Processing integrates advanced background matting and news-style video editing functionalities, leveraging open-source libraries (such as OpenCV, PyTorch, and MoviePy) and the Robust Video Matting (RVM) model to enable seamless video customization. It simplifies the creation of professional news videos with customized backgrounds and text overlays.
 
