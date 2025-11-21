@@ -18,7 +18,9 @@ project_root/
 ├── video_background_matting.py # Background replacement logic
 ├── video_editing.py           # News overlay logic
 └── __init__.py                # Main execution script
-``` Project Overview
+```
+
+#### Project Overview
 
 This toolkit automates two key video processing tasks:
 * **Background Replacement**: Uses the RVM model to separate foreground (e.g., a presenter) from the original video background and replace it with a target image.
