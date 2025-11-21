@@ -368,5 +368,6 @@ class VideoNewsEditor:
             print(f"Error rendering video: {e}")
         finally:
             self.temp_dir.cleanup()
+            os.remove(self.video_path)
             if self.video_clip:
                 self.video_clip.close()
