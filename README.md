@@ -19,18 +19,97 @@ This toolkit automates two key video processing tasks:
 * **Automatic Text Segmentation**: Splits news content into readable sentences using Chinese punctuation and spaCy (if available).
 * **Customizable Overlays**: Supports custom fonts, icons, background images, and text sizes for news elements.
 
-If you need to run this function, you have to set up the environment as follows:
+**Installation**
 
-```shell
-pip install -r requirements.txt
-```
+* Python 3.10.8
+* FFmpeg (required for video/audio processing; install guide)
+* Required Python packages:
+'''bash
+pip install opencv-python numpy torch moviepy tqdm pillow spacy
+'''
 
-You also need to install language models for caption generation, such as Chinese language model:
+Additional dependencies:
+RVM model checkpoint: Download from [Robust Video Matting (RVM)](https://github.com/PeterL1n/RobustVideoMatting) and place in the project root (e.g., rvm_mobilenetv3.pth).
+SpaCy Chinese model (for text segmentation):
+'''bash
+pip install opencv-python numpy torch moviepy tqdm pillow spacy
+'''
 
-```bash
-python -m spacy download zh_core_web_sm
-```
- Robust Video Matting (RVM). 
+**Directory Structure**
+
+'''plaintext
+project_root/
+├── input_files/               # Input resources
+│   ├── input_video.mp4        # Source video (with foreground to preserve)
+│   ├── background.png         # Target background image
+│   ├── news.txt               # News content (title + body text)
+│   └── icon.png               # Icon for news overlay (bottom-left)
+├── output_files/              # Generated files
+│   ├── final_output_video.mp4 # Video with replaced background (pre-editing)
+│   └── edited_video.mp4       # Final news video with overlays
+├── utils/                     # RVM functions resources
+├── video_background_matting.py # Background replacement logic
+├── video_editing.py           # News overlay logic
+└── __init__.py                # Main execution script
+'''
+
+**Usage**
+
+1. Configure Inputs
+Modify the CONFIG dictionary in __init__.py to specify paths and parameters:
+'''python
+CONFIG = {
+    "input_path": "input_files/input_video.mp4",       # Path to source video
+    "background_path": "input_files/background.png",   # Path to target background
+    "output_path": "output_files/final_output_video.mp4", # Path for background-replaced video
+    "rvm_variant": "mobilenetv3",                      # RVM model variant (e.g., "mobilenetv3")
+    "rvm_checkpoint": "rvm_mobilenetv3.pth",           # Path to RVM checkpoint file
+    "rvm_device": "cuda"                               # Device ("cuda" for GPU, "cpu" for CPU)
+}
+'''
+
+2. Prepare News Content
+Create input_files/news.txt with:
+* First line: News title (displayed in the blue title bar).
+* Subsequent lines: News body content (split into timed text overlays).
+
+3. Run the Toolkit
+Execute the main script to run both background replacement and news editing:
+'''bash
+python __init__.py
+'''
+
+**Core Components**
+
+1. Video Background Matting (video_background_matting.py)
+Handles foreground segmentation and background replacement using the RVM model.
+Workflow:
+1. Extract Video Parameters: Reads input video dimensions, FPS, and metadata.
+2.Initialize RVM Model: Loads the pre-trained RVM model for foreground segmentation.
+3.Generate Green Screen Video: Uses RVM to separate the foreground and save it with a green background (temporary file).
+4.Replace Green Screen: Detects green screen areas and replaces them with the target background image, preserving the foreground.
+5.Add Audio: Merges the original audio from the input video into the processed video.
+6.Cleanup: Removes temporary files (green screen video, audio clips) to save space.
+
+2. Video News Editing (video_editing.py)
+Adds news-style overlays to the background-replaced video.
+Workflow:
+* Parse News Content: Extracts title (first line) and body text from news.txt. The body is split into sentences using:
+- Chinese punctuation (e.g., 。, ！).
+- SpaCy (if installed) for more accurate segmentation.
+- Manual splitting for long sentences (over 25 characters).
+* Create Overlays:
+- Icon Block: A white block with a resized icon (bottom-left corner).
+- Title Bar: A blue gradient bar (adjacent to the icon) displaying the news title with a shadow effect.
+- Body Text Clips: Timed text overlays (centered) for each sentence, with duration proportional to character count.
+3. Composite Video: Merges the base video, icon block, title bar, and text clips into the final output.
+
+**Notes**
+
+* Ensure all input paths are correct to avoid FileNotFoundError.
+* For CPU processing, set rvm_device: "cpu" (slower than GPU).
+* Large videos may require longer processing time; progress bars indicate status.
+* Customize font_size, title_font_size, and icon_path in VideoNewsEditor initialization for different styles.
 
 ## Acknowledgement
 
