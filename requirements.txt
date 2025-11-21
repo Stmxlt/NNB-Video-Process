@@ -6,4 +6,4 @@ moviepy
 tqdm
 pillow
 spacy
-pyav
+av
