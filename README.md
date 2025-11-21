@@ -103,7 +103,9 @@ python __init__.py
 
 1. Video Background Matting (video_background_matting.py)
 Handles foreground segmentation and background replacement using the RVM model.
-*Workflow:*
+
+###### Workflow:
+
 * **Extract Video Parameters**: Reads input video dimensions, FPS, and metadata.
 * **Initialize RVM Model**: Loads the pre-trained RVM model for foreground segmentation.
 * **Generate Green Screen Video**: Uses RVM to separate the foreground and save it with a green background (temporary file).
@@ -113,7 +115,9 @@ Handles foreground segmentation and background replacement using the RVM model.
 
 2. Video News Editing (video_editing.py)
 Adds news-style overlays to the background-replaced video.
-*Workflow:*
+
+###### Workflow:
+
 * Parse News Content: Extracts title (first line) and body text from news.txt. The body is split into sentences using:
     - Chinese punctuation (e.g., 。, ！).
     - SpaCy (if installed) for more accurate segmentation.
