@@ -2,40 +2,29 @@
 
 NNB-Video-Processing integrates advanced background matting and news-style video editing functionalities, leveraging open-source libraries (such as OpenCV, PyTorch, and MoviePy) and the Robust Video Matting (RVM) model to enable seamless video customization. It simplifies the creation of professional news videos with customized backgrounds and text overlays.
 
-## Project Overview
+#### Directory Structure
+
+```plaintext
+project_root/
+├── input_files/               # Input resources
+│   ├── input_video.mp4        # Source video (with foreground to preserve)
+│   ├── background.png         # Target background image
+│   ├── news.txt               # News content (title + body text)
+│   └── icon.png               # Icon for news overlay (bottom-left)
+├── output_files/              # Generated files
+│   ├── final_output_video.mp4 # Video with replaced background (pre-editing)
+│   └── edited_video.mp4       # Final news video with overlays
+├── utils/                     # RVM functions resources
+├── video_background_matting.py # Background replacement logic
+├── video_editing.py           # News overlay logic
+└── __init__.py                # Main execution script
+``` Project Overview
 
 This toolkit automates two key video processing tasks:
 * **Background Replacement**: Uses the RVM model to separate foreground (e.g., a presenter) from the original video background and replace it with a target image.
 * **Video Editing**: Adds news-style overlays (title bar, body text, and icons) to the background-replaced video, generating a polished news clip.
 
-**You Need to Upload:**
-* an original broadcast video with a green screen (input_video.mp4)
-* a background image to be used as the new backdrop (background.png)
-* an image-text news article that contains the captions to be added(image-text news.docx)
-
-
-**Features**
-* **AI-Powered Background Matting**: Precisely segments foreground using the RVM model, supporting GPU/CPU acceleration.
-* **Automatic Text Segmentation**: Splits news content into readable sentences using Chinese punctuation and spaCy (if available).
-* **Customizable Overlays**: Supports custom fonts, icons, background images, and text sizes for news elements.
-
-**Installation**
-
-* Python 3.10.8
-* FFmpeg (required for video/audio processing; install guide)
-* Required Python packages:
-```bash
-pip install opencv-python numpy torch moviepy tqdm pillow spacy
-```
-
-Additional dependencies:
-RVM model checkpoint: Download from [Robust Video Matting (RVM)](https://github.com/PeterL1n/RobustVideoMatting) and place in the project root (e.g., rvm_mobilenetv3.pth).
-SpaCy Chinese model (for text segmentation):
-```bash
-pip install opencv-python numpy torch moviepy tqdm pillow spacy
-```
-
-**Directory Structure**
+#### Directory Structure
 
 ```plaintext
 project_root/
@@ -53,7 +42,36 @@ project_root/
 └── __init__.py                # Main execution script
 ```
 
-**Usage**
+#### You Need to Upload:
+* an original broadcast video with a green screen (input_video.mp4)
+* a background image to be used as the new backdrop (background.png)
+* an image-text news article that contains the captions to be added(image-text news.docx)
+
+
+#### Features
+* **AI-Powered Background Matting**: Precisely segments foreground using the RVM model, supporting GPU/CPU acceleration.
+* **Automatic Text Segmentation**: Splits news content into readable sentences using Chinese punctuation and spaCy (if available).
+* **Customizable Overlays**: Supports custom fonts, icons, background images, and text sizes for news elements.
+
+#### Installation
+
+* Python 3.10.8
+* FFmpeg (required for video/audio processing; install guide)
+* Required Python packages:
+
+```bash
+pip install opencv-python numpy torch moviepy tqdm pillow spacy
+```
+
+* Additional dependencies:
+    - RVM model checkpoint: Download from [Robust Video Matting (RVM)](https://github.com/PeterL1n/RobustVideoMatting) and place in the project root (e.g., rvm_mobilenetv3.pth).
+    - SpaCy Chinese model (for text segmentation):
+
+```bash
+pip install opencv-python numpy torch moviepy tqdm pillow spacy
+```
+
+#### Usage
 
 1. Configure Inputs
 Modify the CONFIG dictionary in __init__.py to specify paths and parameters:
@@ -79,7 +97,7 @@ Execute the main script to run both background replacement and news editing:
 python __init__.py
 ```
 
-**Core Components**
+#### Core Components
 
 1. Video Background Matting (video_background_matting.py)
 Handles foreground segmentation and background replacement using the RVM model.
@@ -104,13 +122,13 @@ Adds news-style overlays to the background-replaced video.
 - Body Text Clips: Timed text overlays (centered) for each sentence, with duration proportional to character count.
 3. Composite Video: Merges the base video, icon block, title bar, and text clips into the final output.
 
-**Notes**
+#### Note
 
 * Ensure all input paths are correct to avoid FileNotFoundError.
 * For CPU processing, set rvm_device: "cpu" (slower than GPU).
 * Large videos may require longer processing time; progress bars indicate status.
 * Customize font_size, title_font_size, and icon_path in VideoNewsEditor initialization for different styles.
 
-## Acknowledgement
+#### Acknowledgement
 
 Part of the code in this project is developed based on the open-source project [Robust Video Matting (RVM)](https://github.com/PeterL1n/RobustVideoMatting) The original project adheres to the GPL-3.0 license, and this project is also open-sourced under the GPL-3.0 license.
