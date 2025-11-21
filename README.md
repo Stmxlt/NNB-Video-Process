@@ -101,7 +101,7 @@ python __init__.py
 
 #### Core Components
 
-1. Video Background Matting (video_background_matting.py)
+1. Video Background Matting: 
 Handles foreground segmentation and background replacement using the RVM model.
 
 ##### Workflow:
@@ -113,7 +113,7 @@ Handles foreground segmentation and background replacement using the RVM model.
     - **Add Audio**: Merges the original audio from the input video into the processed video.
     - **Cleanup**: Removes temporary files (green screen video, audio clips) to save space.
 
-2. Video News Editing (video_editing.py)
+2. Video Editing: 
 Adds news-style overlays to the background-replaced video.
 
 ##### Workflow:
