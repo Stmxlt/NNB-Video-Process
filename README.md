@@ -108,20 +108,20 @@ Handles foreground segmentation and background replacement using the RVM model.
 * **Initialize RVM Model**: Loads the pre-trained RVM model for foreground segmentation.
 * **Generate Green Screen Video**: Uses RVM to separate the foreground and save it with a green background (temporary file).
 * **Replace Green Screen**: Detects green screen areas and replaces them with the target background image, preserving the foreground.
-* **Add Audio**: Merges the original audio from the input video into the processed video.
-* **Cleanup**: Removes temporary files (green screen video, audio clips) to save space.
+    - **Add Audio**: Merges the original audio from the input video into the processed video.
+    - **Cleanup**: Removes temporary files (green screen video, audio clips) to save space.
 
 2. Video News Editing (video_editing.py)
 Adds news-style overlays to the background-replaced video.
 *Workflow:*
 * Parse News Content: Extracts title (first line) and body text from news.txt. The body is split into sentences using:
-- Chinese punctuation (e.g., 。, ！).
-- SpaCy (if installed) for more accurate segmentation.
-- Manual splitting for long sentences (over 25 characters).
+    - Chinese punctuation (e.g., 。, ！).
+    - SpaCy (if installed) for more accurate segmentation.
+    - Manual splitting for long sentences (over 25 characters).
 * Create Overlays:
-- Icon Block: A white block with a resized icon (bottom-left corner).
-- Title Bar: A blue gradient bar (adjacent to the icon) displaying the news title with a shadow effect.
-- Body Text Clips: Timed text overlays (centered) for each sentence, with duration proportional to character count.
+    - Icon Block: A white block with a resized icon (bottom-left corner).
+    - Title Bar: A blue gradient bar (adjacent to the icon) displaying the news title with a shadow effect.
+    - Body Text Clips: Timed text overlays (centered) for each sentence, with duration proportional to character count.
 3. Composite Video: Merges the base video, icon block, title bar, and text clips into the final output.
 
 #### Note
