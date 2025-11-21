@@ -52,7 +52,7 @@ pip install -r requirements.txt
     - SpaCy Chinese model (for text segmentation):
 
 ```bash
-pip install opencv-python numpy torch moviepy tqdm pillow spacy
+python -m spacy download zh_core_web_sm
 ```
 
 #### Usage
