@@ -120,4 +120,4 @@ Adds news-style overlays to the background-replaced video.
 
 #### Acknowledgement
 
-Part of the code in this project is developed based on the open-source project [Robust Video Matting (RVM)](https://github.com/PeterL1n/RobustVideoMatting) The original project adheres to the GPL-3.0 license, and this project is also open-sourced under the GPL-3.0 license.
+Part of the code in this project is developed based on the open-source project [Robust Video Matting (RVM)](https://github.com/PeterL1n/RobustVideoMatting) The original project adheres to the GPL-3.0 license.
