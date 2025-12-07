@@ -5,6 +5,5 @@ torchvision
 moviepy
 tqdm
 pillow
-spacy
 av
 pims
