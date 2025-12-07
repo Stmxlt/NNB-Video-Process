@@ -34,7 +34,7 @@ This toolkit automates two key video processing tasks:
 
 #### Features
 * **AI-Powered Background Matting**: Precisely segments foreground using the RVM model, supporting GPU/CPU acceleration.
-* **Automatic Text Segmentation**: Splits news content into readable sentences using Chinese punctuation and spaCy (if available).
+* **Automatic Text Segmentation**: Splits news content into readable sentences using punctuation (。, ！, ？, ., !, ?) and automatic splitting of long sentences (over 25 characters).
 * **Customizable Overlays**: Supports custom fonts, icons, background images, and text sizes for news elements.
 
 #### Installation
@@ -49,11 +49,6 @@ pip install -r requirements.txt
 
 * Additional dependencies:
     - RVM model checkpoint: Download from [Robust Video Matting (RVM)](https://github.com/PeterL1n/RobustVideoMatting) and place in the project root (e.g., rvm_mobilenetv3.pth).
-    - SpaCy Chinese model (for text segmentation):
-
-```bash
-python -m spacy download zh_core_web_sm
-```
 
 #### Usage
 
@@ -103,7 +98,6 @@ Adds news-style overlays to the background-replaced video.
 
 * Parse News Content: Extracts title (first line) and body text from news.txt. The body is split into sentences using:
     - Chinese punctuation (e.g., 。, ！).
-    - SpaCy (if installed) for more accurate segmentation.
     - Manual splitting for long sentences (over 25 characters).
 * Create Overlays:
     - Icon Block: A white block with a resized icon (bottom-left corner).
