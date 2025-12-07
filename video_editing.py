@@ -8,7 +8,6 @@
 import os
 import re
 import tempfile
-import spacy
 from PIL import Image, ImageDraw, ImageFont
 from moviepy import VideoFileClip, ImageClip, CompositeVideoClip
 from tqdm import tqdm
@@ -73,80 +72,52 @@ class VideoNewsEditor:
             return
 
         body_content = ' '.join(all_lines[1:])
-        self.body_sentences = self._split_sentences(body_content)
+        split_sentences = self._split_sentences(body_content)
+        self.body_sentences = self._split_long_sentences(split_sentences)
         self.news_items.append({'type': 'text', 'content': self.body_sentences})
-        print(f"Extracted {len(self.body_sentences)} body sentences from all paragraphs")
+        print(f"Processed {len(self.body_sentences)} sentences from all paragraphs")
 
     def _split_sentences(self, text):
         """
-        Split continuous text into individual sentences using punctuation and spaCy (if available).
-        Ensure each sentence length is within a reasonable range.
-        
-        Inputs:
-            text: Continuous string of text to be split.
-        
-        Returns:
-            list: List of split sentences.
+        Split continuous text into individual sentences using basic punctuation.
+        Remove punctuation marks after splitting.
         """
-        pattern = r'([，、。！？…])'  # Chinese punctuation for splitting
+        pattern = r'([。，！？…,.!?])'
         sentences = re.split(pattern, text)
 
         merged_sentences = []
         i = 0
         while i < len(sentences):
-            if i + 1 < len(sentences) and sentences[i + 1] in ['，', '、', '。', '！', '？', '…']:
-                merged_sentences.append(sentences[i] + sentences[i + 1])
+            if i + 1 < len(sentences) and sentences[i + 1] in ['。', '，', '！', '？', '…', '.', ',', '!', '?']:
+                sentence_without_punct = sentences[i].strip()
+                if sentence_without_punct:
+                    merged_sentences.append(sentence_without_punct)
                 i += 2
             else:
-                merged_sentences.append(sentences[i])
+                if sentences[i].strip():
+                    merged_sentences.append(sentences[i].strip())
                 i += 1
 
-        cleaned_sentences = []
-        for sentence in merged_sentences:
-            if sentence and sentence[-1] in ['，', '、', '。', '！', '？', '…']:
-                cleaned_sentences.append(sentence[:-1])
+        return [s for s in merged_sentences if s]
+
+    def _split_long_sentences(self, sentences, max_length=25):
+        """
+        Split sentences longer than max_length into roughly equal parts.
+        """
+        processed = []
+        for sentence in sentences:
+            if len(sentence) <= max_length:
+                processed.append(sentence)
             else:
-                cleaned_sentences.append(sentence)
+                parts = (len(sentence) + max_length - 1) // max_length
+                part_length = len(sentence) // parts
 
-        try:
-            nlp = spacy.load("zh_core_web_sm")
-        except:
-            print("Please install the Chinese spaCy model: python -m spacy download zh_core_web_sm")
-            nlp = None
-
-        final_sentences = []
-        for sentence in cleaned_sentences:
-            if nlp is not None:
-                doc = nlp(sentence)
-                clauses = [str(sent) for sent in doc.sents]
-                if len(clauses) > 1:
-                    final_sentences.extend(clauses)
-                    continue
-            final_sentences.append(sentence)
-
-        processed_sentences = []
-        for sentence in final_sentences:
-            current_sentence = sentence
-            while len(current_sentence) > 25:  # Split long sentences
-                if nlp is not None:
-                    doc = nlp(current_sentence)
-                    clauses = [str(sent) for sent in doc.sents]
-                    if len(clauses) > 1:
-                        processed_sentences.extend(clauses)
-                        current_sentence = None
-                        break
-                    else:
-                        split_point = 25
-                        processed_sentences.append(current_sentence[:split_point])
-                        current_sentence = current_sentence[split_point:]
-                else:
-                    split_point = 25
-                    processed_sentences.append(current_sentence[:split_point])
-                    current_sentence = current_sentence[split_point:]
-            if current_sentence is not None and current_sentence:
-                processed_sentences.append(current_sentence)
-
-        return [s for s in processed_sentences if s]
+                for i in range(parts):
+                    start = i * part_length
+                    end = start + part_length if i < parts - 1 else len(sentence)
+                    processed.append(sentence[start:end])
+        
+        return processed
 
     def _load_video(self):
         """Load the base video and extract its size and duration."""
@@ -335,8 +306,6 @@ class VideoNewsEditor:
         for sentence in tqdm(all_sentences, desc="Processing sentences", unit="sentence"):
             sentence_len = len(sentence)
             duration = sentence_len * char_duration
-            
-            duration = max(0.5, duration)
             duration = min(duration, self.total_duration - current_time)
             
             if duration <= 0:
